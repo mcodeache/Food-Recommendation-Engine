@@ -6,6 +6,7 @@ import java.sql.SQLException;
 
 public class Users {
     private final Database database;
+    int user_id = 0;
 
     public Users(Database database) {
         this.database = database;
@@ -18,6 +19,7 @@ public class Users {
 
             if (resultSet.next()) {
                 String storedPassword = resultSet.getString("password_hash");
+                user_id = resultSet.getInt("user_id");
                 return storedPassword.equals(password);
             } else {
                 return false; // User does not exist
@@ -43,5 +45,9 @@ public class Users {
             }
         }
         return roleName;
+    }
+
+    public int getUser_id(){
+        return user_id;
     }
 }

@@ -18,48 +18,70 @@ public class ChefHandler {
     }
 
     public void handle() throws IOException, SQLException {
-//        String menu = new Users(database).getChefMenu();
-//        out.println(menu);
-        out.flush();
+        while (true) {
+            sendmenu();
+            String choice = in.readLine();
 
-        String choice = in.readLine();
-        switch (choice) {
-            case "1":
-                // Handle view menu
-                ResultSet menuItems = database.fetchMenuItems();
-                out.println("Menu Items:");
-                while (menuItems.next()) {
-                    String itemName = menuItems.getString("item_name");
-                    double price = menuItems.getDouble("price");
-                    boolean availability = menuItems.getBoolean("availability");
-                    out.printf("%s: $%.2f - %s%n", itemName, price, availability ? "Available" : "Not Available");
-                }
-                out.println("END_OF_MESSAGE");
-                out.flush();
-                break;
-            case "2":
-                // Handle roll out next day menu
-                out.println("Rolling out next day menu...");
-                // Logic to roll out next day menu
-                out.println("Next day menu rolled out successfully.");
-                out.flush();
-                break;
-            case "3":
-                // Handle view monthly report
-                out.println("Viewing monthly report...");
-                // Logic to view monthly report
-                out.println("Monthly report generated.");
-                out.flush();
-                break;
-            case "4":
-                // Exit
-                out.println("Exiting...");
-                out.flush();
-                break;
-            default:
-                out.println("Invalid choice. Please enter a number from 1 to 4.");
-                out.flush();
-                break;
+            switch (choice) {
+                case "view_food_menu":
+                    viewFoodMenu();
+                    break;
+                case "roll_out_next_day_menu":
+                    rollOutNextDayMenu();
+                    break;
+                case "view_monthly_report":
+                    viewMonthlyReport();
+                    break;
+                case "q":
+                    return;
+                default:
+                    out.println("Invalid choice. Please try again.");
+                    break;
+            }
         }
+    }
+
+    private void sendmenu() {
+        out.println("Chef Menu: a) View Food Menu b) Roll Out Next Day Menu c) View Monthly Report d) Exit");
+        out.flush();
+    }
+
+    private void viewFoodMenu() throws SQLException {
+        ResultSet rs = database.fetchMenuItems();
+        StringBuilder menu = new StringBuilder("\n");
+        while (rs.next()) {
+            menu.append(rs.getString("item_name")).append(": $")
+                    .append(rs.getDouble("price")).append(", Available: ")
+                    .append(rs.getString("availability")).append("\n");
+        }
+        out.println(menu.toString());
+        rs.close();
+    }
+
+    private void rollOutNextDayMenu() throws IOException, SQLException {
+        out.println("Enter Breakfast Menu:");
+        String breakfast = in.readLine();
+        out.println("Enter Lunch Menu:");
+        String lunch = in.readLine();
+        out.println("Enter Dinner Menu:");
+        String dinner = in.readLine();
+
+        boolean success = database.rollOutNextDayMenu(breakfast, lunch, dinner);
+        if (success) {
+            out.println("Next day menu rolled out successfully.");
+        } else {
+            out.println("Failed to roll out next day menu.");
+        }
+    }
+
+    private void viewMonthlyReport() throws SQLException {
+        ResultSet rs = database.fetchMonthlyReport();
+        StringBuilder report = new StringBuilder("Monthly Report:\n");
+        while (rs.next()) {
+            report.append("Date: ").append(rs.getDate("report_date"))
+                    .append(", Total Sales: $").append(rs.getDouble("total_sales")).append("\n");
+        }
+        out.println(report.toString());
+        rs.close();
     }
 }

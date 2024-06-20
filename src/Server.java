@@ -14,11 +14,11 @@ public class Server {
     public Server() {
         try {
             serverSocket = new ServerSocket(PORT);
-            System.out.println("Server started. Listening on port " + PORT);
+            System.out.println("Server started");
             database = new Database("jdbc:mysql://localhost:3306/RecommendationEngine", "root", "ITT@1234");
             database.connect(); // Connect to the database
             users = new Users(database); // Initialize Users object for authentication
-            executor = Executors.newCachedThreadPool(); // Create a thread pool
+            executor = Executors.newCachedThreadPool(); // Create threads
         } catch (IOException | SQLException e) {
             System.err.println("Error starting server: " + e.getMessage());
         }
@@ -28,9 +28,8 @@ public class Server {
         try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress().getHostAddress());
+                System.out.println("New client connected: ");
 
-                // Pass the client connection to a new ClientHandler thread
                 ClientHandler clientHandler = new ClientHandler(clientSocket, users, database);
                 executor.submit(clientHandler);
             }

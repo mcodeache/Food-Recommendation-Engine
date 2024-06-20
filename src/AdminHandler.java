@@ -18,7 +18,7 @@ public class AdminHandler {
     }
 
     public void handle() throws IOException, SQLException {
-        sendMenu();  // Show the menu initially
+        sendMenu();
         while (true) {
             String request = in.readLine();
 
@@ -28,10 +28,10 @@ public class AdminHandler {
                 out.println("Logging out...");
                 out.println("END_OF_MESSAGE");
                 out.flush();
-                break;  // Exit the loop and end the session
+                break;
             } else {
                 handleOperation(request);
-                sendMenu();  // Show the menu after each operation
+                sendMenu();
             }
         }
     }

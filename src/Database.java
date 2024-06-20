@@ -31,7 +31,6 @@ public class Database {
         return connection;
     }
 
-    // Method to fetch user details by username
     public ResultSet fetchUser(String username) throws SQLException {
         String query = "SELECT USER.*, ROLE.role_name, USERCREDENTIALS.password_hash " +
                 "FROM USER " +
@@ -43,27 +42,23 @@ public class Database {
         return preparedStatement.executeQuery();
     }
 
-    // Method to fetch menu items for a given role
-    public ResultSet fetchMenuForRole(String roleName) throws SQLException {
-        String query = "SELECT MENUITEM.item_name, MENUITEM.price, MENUITEM.availability " +
-                "FROM MENUITEM " +
-                "JOIN ROLE_MENU ON MENUITEM.item_id = ROLE_MENU.item_id " +
-                "JOIN ROLE ON ROLE_MENU.role_id = ROLE.role_id " +
-                "WHERE ROLE.role_name = ?";
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        preparedStatement.setString(1, roleName);
-        return preparedStatement.executeQuery();
-    }
+//    public ResultSet fetchMenuForRole(String roleName) throws SQLException {
+//        String query = "SELECT MENUITEM.item_name, MENUITEM.price, MENUITEM.availability " +
+//                "FROM MENUITEM " +
+//                "JOIN ROLE_MENU ON MENUITEM.item_id = ROLE_MENU.item_id " +
+//                "JOIN ROLE ON ROLE_MENU.role_id = ROLE.role_id " +
+//                "WHERE ROLE.role_name = ?";
+//        PreparedStatement preparedStatement = connection.prepareStatement(query);
+//        preparedStatement.setString(1, roleName);
+//        return preparedStatement.executeQuery();
+//    }
 
-    //Method to view menu items
     public ResultSet fetchMenuItems() throws SQLException {
         String query = "SELECT item_name, price, availability FROM MENUITEM";
         Statement statement = connection.createStatement();
         return statement.executeQuery(query);
     }
 
-
-    // Method to add a new menu item
     public void addMenuItem(String itemName, double price, String availability) throws SQLException {
         String query = "INSERT INTO MENUITEM (item_name, price, availability) VALUES (?, ?, ?)";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
@@ -74,7 +69,6 @@ public class Database {
         System.out.println("Menu item added: " + itemName);
     }
 
-    // Method to delete a menu item
     public void deleteMenuItem(String itemName) throws SQLException {
         String query = "DELETE FROM MENUITEM WHERE item_name = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
@@ -87,7 +81,6 @@ public class Database {
         }
     }
 
-    // Method to update the price of a menu item
     public void updateMenuItem(String itemName, double newPrice, String availability) throws SQLException {
         String query = "UPDATE MENUITEM SET price = ?, availability = ? WHERE item_name = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
@@ -100,5 +93,69 @@ public class Database {
         } else {
             System.out.println("Menu item not found: " + itemName);
         }
+    }
+    public ResultSet fetchNextDayRecommendations() throws SQLException {
+        String query = "SELECT breakfast, lunch, dinner FROM next_day_recommendation";
+        Statement statement = connection.createStatement();
+        return statement.executeQuery(query);
+    }
+
+    public boolean submitFeedback(int itemID, String feedback, int rating, String username, int userId) throws SQLException {
+        // First, check if feedback already exists for the user and item
+        String checkQuery = "SELECT * FROM feedback WHERE menuitem_id = ? AND user_id = ?";
+        PreparedStatement checkStatement = connection.prepareStatement(checkQuery);
+        checkStatement.setInt(1, itemID);
+        checkStatement.setInt(2, userId);
+        ResultSet resultSet = checkStatement.executeQuery();
+
+        boolean result;
+
+        if (resultSet.next()) {
+            // Update existing feedback
+            String updateQuery = "UPDATE feedback SET feedback_text = ?, rating = ? WHERE menuitem_id = ? AND user_id = ?";
+            PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
+            updateStatement.setString(1, feedback);
+            updateStatement.setInt(2, rating);
+            updateStatement.setInt(3, itemID);
+            updateStatement.setInt(4, userId);
+            int updatedRows = updateStatement.executeUpdate();
+            result = updatedRows > 0;
+            updateStatement.close();
+        } else {
+            // Insert new feedback
+            String insertQuery = "INSERT INTO feedback (menuitem_id, feedback_text, user_id, rating) VALUES (?, ?, ?, ?)";
+            PreparedStatement insertStatement = connection.prepareStatement(insertQuery);
+            insertStatement.setInt(1, itemID);
+            insertStatement.setString(2, feedback);
+            insertStatement.setInt(3, userId);
+            insertStatement.setInt(4, rating);
+            int insertedRows = insertStatement.executeUpdate();
+            result = insertedRows > 0;
+            insertStatement.close();
+        }
+
+        resultSet.close();
+        checkStatement.close();
+
+        return result;
+    }
+
+
+
+    public boolean rollOutNextDayMenu(String breakfast, String lunch, String dinner) throws SQLException {
+        String sql = "INSERT INTO next_day_menu (breakfast, lunch, dinner) VALUES (?, ?, ?)";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, breakfast);
+            preparedStatement.setString(2, lunch);
+            preparedStatement.setString(3, dinner);
+            int result = preparedStatement.executeUpdate();
+            return result > 0;
+        }
+    }
+
+    public ResultSet fetchMonthlyReport() throws SQLException {
+        String sql = "SELECT * FROM monthly_report";
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        return preparedStatement.executeQuery();
     }
 }

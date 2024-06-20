@@ -8,6 +8,7 @@ public class ClientHandler implements Runnable {
     private Database database;
     private PrintWriter out;
     private BufferedReader in;
+    private int userId = 0;
 
     public ClientHandler(Socket clientSocket, Users users, Database database) {
         this.clientSocket = clientSocket;
@@ -32,6 +33,8 @@ public class ClientHandler implements Runnable {
                 out.println("Authentication successful");
 
                 String roleName = users.getRoleName(username);
+                userId = users.getUser_id();
+
                 out.println(roleName);
                 switch (roleName.toLowerCase()) {
                     case "admin":
@@ -74,7 +77,7 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleEmployee(String username) throws IOException, SQLException {
-        EmployeeHandler employeeHandler = new EmployeeHandler(out, in, username, database);
+        EmployeeHandler employeeHandler = new EmployeeHandler(out, in, username, database,userId);
         employeeHandler.handle();
     }
 }
