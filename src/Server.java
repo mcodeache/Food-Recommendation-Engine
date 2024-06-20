@@ -1,24 +1,56 @@
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
+import java.sql.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
-    public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(12345)) {
-            System.out.println("Server started, waiting for clients...");
+    private static final int PORT = 12345;
+    private ServerSocket serverSocket;
+    private Database database;
+    private Users users;
+    private ExecutorService executor;
 
-            Database database = new Database("jdbc:mysql://localhost:3306/RecommendationEngine", "root", "ITT@1234");
+    public Server() {
+        try {
+            serverSocket = new ServerSocket(PORT);
+            System.out.println("Server started. Listening on port " + PORT);
+            database = new Database("jdbc:mysql://localhost:3306/RecommendationEngine", "root", "ITT@1234");
+            database.connect(); // Connect to the database
+            users = new Users(database); // Initialize Users object for authentication
+            executor = Executors.newCachedThreadPool(); // Create a thread pool
+        } catch (IOException | SQLException e) {
+            System.err.println("Error starting server: " + e.getMessage());
+        }
+    }
 
+    public void start() {
+        try {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected");
+                System.out.println("New client connected: " + clientSocket.getInetAddress().getHostAddress());
 
-                ClientHandler clientHandler = new ClientHandler(clientSocket, database);
-                clientHandler.start();
+                // Pass the client connection to a new ClientHandler thread
+                ClientHandler clientHandler = new ClientHandler(clientSocket, users, database);
+                executor.submit(clientHandler);
             }
         } catch (IOException e) {
-            System.out.println("Could not listen on port 12345");
-            System.out.println(e.getMessage());
+            System.err.println("Error accepting client connection: " + e.getMessage());
+        } finally {
+            try {
+                if (serverSocket != null && !serverSocket.isClosed()) {
+                    serverSocket.close();
+                }
+                executor.shutdown(); // Shut down the executor service
+                database.disconnect(); // Disconnect from the database
+            } catch (IOException | SQLException e) {
+                System.err.println("Error closing server: " + e.getMessage());
+            }
         }
+    }
+
+    public static void main(String[] args) {
+        Server server = new Server();
+        server.start();
     }
 }

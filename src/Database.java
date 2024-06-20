@@ -55,12 +55,21 @@ public class Database {
         return preparedStatement.executeQuery();
     }
 
+    //Method to view menu items
+    public ResultSet fetchMenuItems() throws SQLException {
+        String query = "SELECT item_name, price, availability FROM MENUITEM";
+        Statement statement = connection.createStatement();
+        return statement.executeQuery(query);
+    }
+
+
     // Method to add a new menu item
-    public void addMenuItem(String itemName, double price) throws SQLException {
-        String query = "INSERT INTO MENUITEM (item_name, price) VALUES (?, ?)";
+    public void addMenuItem(String itemName, double price, String availability) throws SQLException {
+        String query = "INSERT INTO MENUITEM (item_name, price, availability) VALUES (?, ?, ?)";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
         preparedStatement.setString(1, itemName);
         preparedStatement.setDouble(2, price);
+        preparedStatement.setString(3, availability);
         preparedStatement.executeUpdate();
         System.out.println("Menu item added: " + itemName);
     }
@@ -79,11 +88,12 @@ public class Database {
     }
 
     // Method to update the price of a menu item
-    public void updateMenuItem(String itemName, double newPrice) throws SQLException {
-        String query = "UPDATE MENUITEM SET price = ? WHERE item_name = ?";
+    public void updateMenuItem(String itemName, double newPrice, String availability) throws SQLException {
+        String query = "UPDATE MENUITEM SET price = ?, availability = ? WHERE item_name = ?";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
         preparedStatement.setDouble(1, newPrice);
         preparedStatement.setString(2, itemName);
+        preparedStatement.setString(3,availability);
         int rowsUpdated = preparedStatement.executeUpdate();
         if (rowsUpdated > 0) {
             System.out.println("Menu item updated: " + itemName);

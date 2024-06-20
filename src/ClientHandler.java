@@ -1,53 +1,80 @@
 import java.io.*;
 import java.net.*;
-import java.sql.SQLException;
+import java.sql.*;
 
-class ClientHandler extends Thread {
+public class ClientHandler implements Runnable {
     private Socket clientSocket;
-    private Database database;
     private Users users;
+    private Database database;
+    private PrintWriter out;
+    private BufferedReader in;
 
-    public ClientHandler(Socket socket, Database database) {
-        this.clientSocket = socket;
+    public ClientHandler(Socket clientSocket, Users users, Database database) {
+        this.clientSocket = clientSocket;
+        this.users = users;
         this.database = database;
-        this.users = new Users(database);
     }
 
+    @Override
     public void run() {
         try {
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
+            // Read username and password from client
             String username = in.readLine();
             String password = in.readLine();
 
+            // Authenticate user
             boolean authenticated = users.authenticate(username, password);
 
             if (authenticated) {
                 out.println("Authentication successful");
-                out.flush();
-                String menu = users.sendMenuForRole(username);
-                out.println(menu);
-                out.flush();
 
-                String userChoice;
-                while ((userChoice = in.readLine()) != null) {
-                    users.processUserChoice(out, username, userChoice);
-                    out.println(menu); // Send the menu again after processing the choice
-                    out.flush();
+                String roleName = users.getRoleName(username);
+                out.println(roleName);
+                switch (roleName.toLowerCase()) {
+                    case "admin":
+                        handleAdmin(username);
+                        break;
+                    case "chef":
+                        handleChef(username);
+                        break;
+                    case "employee":
+                        handleEmployee(username);
+                        break;
+                    default:
+                        out.println("Unknown role. Cannot proceed.");
+                        break;
                 }
             } else {
                 out.println("Authentication failed");
-                out.flush();
             }
         } catch (IOException | SQLException e) {
-            System.out.println("Error handling client: " + e.getMessage());
+            System.err.println("Error handling client: " + e.getMessage());
         } finally {
             try {
-                clientSocket.close();
+                if (clientSocket != null && !clientSocket.isClosed()) {
+                    clientSocket.close();
+                }
             } catch (IOException e) {
-                System.out.println("Error closing client socket: " + e.getMessage());
+                System.err.println("Error closing client socket: " + e.getMessage());
             }
         }
+    }
+
+    private void handleAdmin(String username) throws IOException, SQLException {
+        AdminHandler adminHandler = new AdminHandler(out, in, username, database);
+        adminHandler.handle();
+    }
+
+    private void handleChef(String username) throws IOException, SQLException {
+        ChefHandler chefHandler = new ChefHandler(out, in, username, database);
+        chefHandler.handle();
+    }
+
+    private void handleEmployee(String username) throws IOException, SQLException {
+        EmployeeHandler employeeHandler = new EmployeeHandler(out, in, username, database);
+        employeeHandler.handle();
     }
 }

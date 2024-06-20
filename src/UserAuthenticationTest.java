@@ -41,37 +41,37 @@ public class UserAuthenticationTest {
     }
 
     @Test
-    public void testAuthenticateAdminSuccess() {
+    public void testAuthenticateAdminSuccess() throws SQLException {
         boolean authenticated = users.authenticate("Alice", "password123");
         assertTrue(authenticated);
     }
 
     @Test
-    public void testAuthenticateChefSuccess() {
+    public void testAuthenticateChefSuccess() throws SQLException {
         boolean authenticated = users.authenticate("Bob", "chefpass");
         assertTrue(authenticated);
     }
 
     @Test
-    public void testAuthenticateEmployeeSuccess() {
+    public void testAuthenticateEmployeeSuccess() throws SQLException {
         boolean authenticated = users.authenticate("Charlie", "employeepass");
         assertTrue(authenticated);
     }
 
     @Test
-    public void testAuthenticateInvalidPassword() {
+    public void testAuthenticateInvalidPassword() throws SQLException {
         boolean authenticated = users.authenticate("Charlie", "wrongpassword");
         assertFalse(authenticated);
     }
 
     @Test
-    public void testAuthenticateNonExistentUser() {
+    public void testAuthenticateNonExistentUser() throws SQLException {
         boolean authenticated = users.authenticate("nonexistent", "1234");
         assertFalse(authenticated);
     }
 
     @Test
-    public void testAuthenticateInvalidEmployeeIdFormat() {
+    public void testAuthenticateInvalidEmployeeIdFormat() throws SQLException {
         boolean authenticated = users.authenticate("invalidIdFormat", "1234");
         assertFalse(authenticated);
     }
