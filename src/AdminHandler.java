@@ -86,7 +86,8 @@ public class AdminHandler {
         String itemName = in.readLine();
         double itemPrice = Double.parseDouble(in.readLine());
         String availability = "yes";
-        database.addMenuItem(itemName, itemPrice, availability);
+        String itemType = in.readLine();
+        database.addMenuItem(itemName, itemPrice, availability, itemType);
         out.println("Item added successfully.");
         out.println("END_OF_MESSAGE");
         out.flush();

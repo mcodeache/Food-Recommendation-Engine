@@ -3,6 +3,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.HashSet;
+import java.util.Set;
 
 public class EmployeeHandler {
     private PrintWriter out;
@@ -26,7 +29,7 @@ public class EmployeeHandler {
 
             if ("menu".equals(request)) {
                 sendMenu();
-            } else if ("4".equals(request)) {
+            } else if ("5".equals(request)) {
                 out.println("Exiting...");
                 out.println("END_OF_MESSAGE");
                 out.flush();
@@ -39,19 +42,22 @@ public class EmployeeHandler {
     }
 
     private void sendMenu() {
-        out.println("Employee Menu: 1) View Next Day Recommendation 2) Give Feedback 3) View Menu 4) Exit");
+        out.println("Employee Menu: 1) View Next Day Recommendation 2) Give Feedback 3) Select Items For Tomorrow 4) View Menu 5) Exit");
         out.flush();
     }
 
     private void handleOperation(String choice) throws IOException, SQLException {
         switch (choice) {
             case "1":
-                viewNextDayRecommendation();
+                viewNextDayRecommendations();
                 break;
             case "2":
                 giveFeedback();
                 break;
             case "3":
+                selectMenuItems();
+                break;
+            case "4":
                 viewMenuItems();
                 break;
             default:
@@ -61,16 +67,59 @@ public class EmployeeHandler {
         }
     }
 
+
+    private void selectMenuItems() throws SQLException, IOException {
+        ResultSet recommendedItems = database.fetchNextDayRecommendations();
+        while (recommendedItems.next()) {
+            int menuitemId = recommendedItems.getInt("menuitem_id");
+            String itemName = database.getMenuNameById(menuitemId);
+            String category = recommendedItems.getString("meal_type");
+
+            out.println(menuitemId + ": " + itemName + " (" + category + ")");
+        }
+        out.println("END_OF_MESSAGE");
+        out.flush();
+
+        Set<Integer> selectedBreakfastItems = selectItems();
+        Set<Integer> selectedLunchItems = selectItems();
+        Set<Integer> selectedDinnerItems = selectItems();
+
+        saveSelections(selectedBreakfastItems, "breakfast");
+        saveSelections(selectedLunchItems, "lunch");
+        saveSelections(selectedDinnerItems, "dinner");
+
+        out.println("END_OF_MESSAGE");
+        out.flush();
+    }
+
+    private Set<Integer> selectItems() throws IOException {
+        Set<Integer> selectedItems = new HashSet<>();
+        for (int i = 0; i < 2; i++) {
+            int itemId = Integer.parseInt(in.readLine());
+            selectedItems.add(itemId);
+        }
+
+        return selectedItems;
+    }
+
+    private void saveSelections(Set<Integer> selectedItems, String mealType) throws SQLException {
+        for (int itemId : selectedItems) {
+            database.saveEmployeeSelection(itemId, mealType);
+        }
+    }
+
     private void viewMenuItems() throws SQLException {
         ResultSet menuItems = database.fetchMenuItems();
         boolean hasItems = false;
 
         while (menuItems.next()) {
             hasItems = true;
+            int itemId = menuItems.getInt("menuitem_id");
+            String mealType = menuItems.getString("meal_type");
             String itemName = menuItems.getString("item_name");
             double price = menuItems.getDouble("price");
             boolean availability = menuItems.getBoolean("availability");
-            out.printf("%s: $%.2f - %s%n", itemName, price, availability ? "Available" : "Not Available");
+            out.printf("%d: %s - $%.2f %s - %s%n", itemId, itemName, price, mealType, availability ? "Available" : "Not Available");
         }
 
         if (!hasItems) {
@@ -81,19 +130,61 @@ public class EmployeeHandler {
         out.flush();
     }
 
-    private void viewNextDayRecommendation() throws SQLException {
-        ResultSet rs = database.fetchNextDayRecommendations();
-        if (rs.next()) {
-            out.println("Breakfast: " + rs.getString("breakfast"));
-            out.println("Lunch: " + rs.getString("lunch"));
-            out.println("Dinner: " + rs.getString("dinner"));
-        } else {
-            out.println("No recommendations available.");
+    private void viewNextDayRecommendations() throws SQLException {
+        ResultSet recommendations = database.fetchNextDayRecommendations();
+        StringBuilder breakfastReport = new StringBuilder("Breakfast Recommendations:\n");
+        StringBuilder lunchReport = new StringBuilder("Lunch Recommendations:\n");
+        StringBuilder dinnerReport = new StringBuilder("Dinner Recommendations:\n");
+
+        while (recommendations.next()) {
+            int menuItemId = recommendations.getInt("menuitem_id");
+            String menuItem = database.getMenuNameById(menuItemId);
+            String mealType = recommendations.getString("meal_type");
+            Timestamp recommendationDate = recommendations.getTimestamp("recommendation_date");
+            int feedbackId = recommendations.getInt("feedback_id");
+
+            String itemReport = "Menu Item: " + menuItem
+                    + ", Recommendation Date: " + recommendationDate
+                    + ", Feedback ID: " + feedbackId + "\n";
+
+            switch (mealType.toLowerCase()) {
+                case "breakfast":
+                    breakfastReport.append(itemReport);
+                    break;
+                case "lunch":
+                    lunchReport.append(itemReport);
+                    break;
+                case "dinner":
+                    dinnerReport.append(itemReport);
+                    break;
+            }
         }
+
+        StringBuilder finalReport = new StringBuilder();
+        if (breakfastReport.length() > "Breakfast Recommendations:\n".length()) {
+            finalReport.append(breakfastReport);
+        } else {
+            finalReport.append("No breakfast recommendations for today.\n");
+        }
+
+        if (lunchReport.length() > "Lunch Recommendations:\n".length()) {
+            finalReport.append(lunchReport);
+        } else {
+            finalReport.append("No lunch recommendations for today.\n");
+        }
+
+        if (dinnerReport.length() > "Dinner Recommendations:\n".length()) {
+            finalReport.append(dinnerReport);
+        } else {
+            finalReport.append("No dinner recommendations for today.\n");
+        }
+
+        out.println(finalReport);
         out.println("END_OF_MESSAGE");
-        rs.close();
         out.flush();
+        recommendations.close();
     }
+
 
     private void giveFeedback() throws IOException, SQLException {
         out.println("Enter the menu item ID you want to give feedback for:");
@@ -108,7 +199,9 @@ public class EmployeeHandler {
         out.flush();
         int rating = Integer.parseInt(in.readLine());
 
-        boolean success = database.submitFeedback(itemID, feedback, rating, username, userId);
+        // Analyze sentiment and calculate sentiment score
+        SentimentAnalysisResult sentimentResult = (SentimentAnalysisResult) SentimentAnalysis.analyzeFeedback(feedback);
+        boolean success = database.submitFeedback(itemID, feedback, rating, userId, sentimentResult);
         if (success) {
             out.println("Feedback submitted successfully.");
         } else {

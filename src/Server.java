@@ -13,6 +13,7 @@ public class Server {
 
     public Server() {
         try {
+
             serverSocket = new ServerSocket(PORT);
             System.out.println("Server started");
             database = new Database("jdbc:mysql://localhost:3306/RecommendationEngine", "root", "ITT@1234");

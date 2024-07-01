@@ -72,7 +72,7 @@ public class ClientHandler implements Runnable {
     }
 
     private void handleChef(String username) throws IOException, SQLException {
-        ChefHandler chefHandler = new ChefHandler(out, in, username, database);
+        ChefHandler chefHandler = new ChefHandler(out, in, username, database, userId);
         chefHandler.handle();
     }
 
