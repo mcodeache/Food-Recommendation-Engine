@@ -105,7 +105,6 @@ public class AdminHandler {
 
     private void deleteItem() throws IOException, SQLException {
         String itemName = in.readLine();
-
         database.deleteMenuItem(itemName);
         out.println("Item deleted successfully.");
         out.println("END_OF_MESSAGE");

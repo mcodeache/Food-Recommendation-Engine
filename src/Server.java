@@ -17,11 +17,11 @@ public class Server {
             serverSocket = new ServerSocket(PORT);
             System.out.println("Server started");
             database = new Database("jdbc:mysql://localhost:3306/RecommendationEngine", "root", "ITT@1234");
-            database.connect(); // Connect to the database
-            users = new Users(database); // Initialize Users object for authentication
-            executor = Executors.newCachedThreadPool(); // Create threads
-        } catch (IOException | SQLException e) {
-            System.err.println("Error starting server: " + e.getMessage());
+            database.connect();
+            users = new Users(database);
+            executor = Executors.newCachedThreadPool();
+        } catch (IOException | SQLException exception) {
+            CustomExceptionHandler.handleException(exception);
         }
     }
 
