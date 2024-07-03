@@ -69,7 +69,8 @@ public class EmployeeHandler {
 
 
     private void selectMenuItems() throws SQLException, IOException {
-        ResultSet recommendedItems = database.fetchNextDayRecommendations();
+        ResultSet userProfile = database.fetchUserProfile(userId);
+        ResultSet recommendedItems = database.fetchNextDayRecommendations(userId, userProfile);
         while (recommendedItems.next()) {
             int menuitemId = recommendedItems.getInt("menuitem_id");
             String itemName = database.getMenuNameById(menuitemId);
@@ -131,7 +132,8 @@ public class EmployeeHandler {
     }
 
     private void viewNextDayRecommendations() throws SQLException {
-        ResultSet recommendations = database.fetchNextDayRecommendations();
+        ResultSet userProfile = database.fetchUserProfile(userId);
+        ResultSet recommendations = database.fetchNextDayRecommendations(userId, userProfile);
         StringBuilder breakfastReport = new StringBuilder("Breakfast Recommendations:\n");
         StringBuilder lunchReport = new StringBuilder("Lunch Recommendations:\n");
         StringBuilder dinnerReport = new StringBuilder("Dinner Recommendations:\n");
@@ -143,9 +145,8 @@ public class EmployeeHandler {
             Timestamp recommendationDate = recommendations.getTimestamp("recommendation_date");
             int feedbackId = recommendations.getInt("feedback_id");
 
-            String itemReport = "Menu Item: " + menuItem
-                    + ", Recommendation Date: " + recommendationDate
-                    + ", Feedback ID: " + feedbackId + "\n";
+            String itemReport = String.format("Menu Item: %s, Recommendation Date: %s, Feedback ID: %d%n",
+                    menuItem, recommendationDate, feedbackId);
 
             switch (mealType.toLowerCase()) {
                 case "breakfast":

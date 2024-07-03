@@ -97,12 +97,45 @@ public class Database {
         }
     }
 
-    public ResultSet fetchNextDayRecommendations() throws SQLException {
-        String query = "SELECT menuitem_id, meal_type, recommendation_date, feedback_id " +
-                "FROM RECOMMENDATION " +
-                "WHERE DATE(recommendation_date) = CURDATE()";
-        Statement statement = connection.createStatement();
-        return statement.executeQuery(query);
+    public ResultSet fetchUserProfile(int userId) throws SQLException {
+        String query = "SELECT * FROM userProfile WHERE user_id = ?";
+        PreparedStatement statement = connection.prepareStatement(query);
+        statement.setInt(1, userId);
+        return statement.executeQuery();
+    }
+
+
+    public ResultSet fetchNextDayRecommendations(int userId, ResultSet userProfile) throws SQLException {
+        int sweetTooth = 0;
+        String spiceLevel = "", preference = "", diet_type = "";
+
+        String query = "SELECT r.menuitem_id, r.meal_type, r.recommendation_date, r.feedback_id, m.item_name, m.price, m.availability " +
+                "FROM RECOMMENDATION r " +
+                "JOIN MENUITEM m ON r.menuitem_id = m.menuitem_id " +
+                "WHERE DATE(r.recommendation_date) = CURDATE() " +
+                "ORDER BY " +
+                "CASE WHEN m.diet_type = ? THEN 1 ELSE 2 END, " +
+                "CASE WHEN m.preference = ? THEN 1 ELSE 2 END, " +
+                "CASE WHEN m.spice_level = ? THEN 1 ELSE 2 END, " +
+                "CASE WHEN m.sweet_tooth = ? THEN 1 ELSE 2 END";
+
+
+        while (userProfile.next()){
+            diet_type = userProfile.getString("diet_type");
+            preference = userProfile.getString("preference");
+            spiceLevel = userProfile.getString("spice_level");
+            sweetTooth = userProfile.getInt("sweet_tooth");
+        }
+
+        PreparedStatement statement = connection.prepareStatement(query);
+
+        statement.setString(1, diet_type);
+        statement.setString(2, preference);
+        statement.setString(3, spiceLevel);
+        statement.setInt(4, sweetTooth);
+
+
+        return statement.executeQuery();
     }
 
 
@@ -273,5 +306,7 @@ public class Database {
         Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
     }
+
+
 
 }
