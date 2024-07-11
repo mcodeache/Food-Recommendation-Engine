@@ -5,9 +5,9 @@ import java.sql.*;
 public class ClientHandler implements Runnable {
     private static final int MAX_ATTEMPTS = 3;
 
-    private Socket clientSocket;
-    private Users users;
-    private Database database;
+    private final Socket clientSocket;
+    private final Users users;
+    private final Database database;
     private PrintWriter out;
     private BufferedReader in;
     private int userId = 0;
@@ -42,13 +42,13 @@ public class ClientHandler implements Runnable {
                     out.println(roleName);
                     switch (roleName.toLowerCase()) {
                         case "admin":
-                            handleAdmin(username);
+                            handleAdmin();
                             break;
                         case "chef":
-                            handleChef(username);
+                            handleChef();
                             break;
                         case "employee":
-                            handleEmployee(username);
+                            handleEmployee();
                             break;
                         default:
                             out.println("Unknown role. Cannot proceed.");
@@ -76,18 +76,18 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private void handleAdmin(String username) throws IOException, SQLException {
-        AdminHandler adminHandler = new AdminHandler(out, in, username, database);
+    private void handleAdmin() throws IOException, SQLException {
+        AdminHandler adminHandler = new AdminHandler(out, in, database);
         adminHandler.handle();
     }
 
-    private void handleChef(String username) throws IOException, SQLException {
-        ChefHandler chefHandler = new ChefHandler(out, in, username, database, userId);
+    private void handleChef() throws IOException, SQLException {
+        ChefHandler chefHandler = new ChefHandler(out, in, database, userId);
         chefHandler.handle();
     }
 
-    private void handleEmployee(String username) throws IOException, SQLException {
-        EmployeeHandler employeeHandler = new EmployeeHandler(out, in, username, database, userId);
+    private void handleEmployee() throws IOException, SQLException {
+        EmployeeHandler employeeHandler = new EmployeeHandler(out, in, database, userId);
         employeeHandler.handle();
     }
 }

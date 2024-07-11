@@ -2,9 +2,9 @@ import java.sql.*;
 import java.util.Map;
 
 public class Database {
-    private String url;
-    private String username;
-    private String password;
+    private final String url;
+    private final String username;
+    private final String password;
     private Connection connection;
 
     public Database(String url, String username, String password) {
@@ -49,15 +49,19 @@ public class Database {
         return statement.executeQuery(query);
     }
 
-    public void addMenuItem(String itemName, double price, String availability, String item_type) throws SQLException {
-        String query = "INSERT INTO MENUITEM (item_name, price, availability, meal_type) VALUES (?, ?, ?, ?)";
+    public void addMenuItem(String[] itemDetails) throws SQLException {
+        String query = "INSERT INTO MENUITEM (item_name, price, availability, meal_type, diet_type, spice_level, preference, sweet_tooth) VALUES (?, ?, ?, ?, ?, ?, ? ,?)";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
-        preparedStatement.setString(1, itemName);
-        preparedStatement.setDouble(2, price);
-        preparedStatement.setString(3, availability);
-        preparedStatement.setString(4, item_type);
+        preparedStatement.setString(1, itemDetails[0]);
+        preparedStatement.setDouble(2, Double.parseDouble(itemDetails[1]));
+        preparedStatement.setString(3, itemDetails[2]);
+        preparedStatement.setString(4, itemDetails[3]);
+        preparedStatement.setString(4, itemDetails[4]);
+        preparedStatement.setString(4, itemDetails[5]);
+        preparedStatement.setString(4, itemDetails[6]);
+        preparedStatement.setString(4, itemDetails[7]);
         preparedStatement.executeUpdate();
-        System.out.println("Menu item added: " + itemName);
+        System.out.println("Menu item added: " + itemDetails[0]);
     }
 
     public void deleteMenuItem(String itemName) throws SQLException {
@@ -105,11 +109,11 @@ public class Database {
     }
 
 
-    public ResultSet fetchNextDayRecommendations(int userId, ResultSet userProfile) throws SQLException {
+    public ResultSet fetchNextDayRecommendations(ResultSet userProfile) throws SQLException {
         int sweetTooth = 0;
         String spiceLevel = "", preference = "", diet_type = "";
 
-        String query = "SELECT r.menuitem_id, r.meal_type, r.recommendation_date, r.feedback_id, m.item_name, m.price, m.availability " +
+        String query = "SELECT r.menuitem_id, r.meal_type, r.recommendation_dates, m.item_name, m.price, m.availability " +
                 "FROM RECOMMENDATION r " +
                 "JOIN MENUITEM m ON r.menuitem_id = m.menuitem_id " +
                 "WHERE DATE(r.recommendation_date) = CURDATE() " +
@@ -249,11 +253,12 @@ public class Database {
         }
     }
 
-    public void saveEmployeeSelection(int itemId, String mealType) throws SQLException {
-        String query = "INSERT INTO employee_selection (menuitem_id, meal_type) VALUES (?, ?)";
+    public void saveEmployeeSelection(int itemId, String mealType, int userId) throws SQLException {
+        String query = "INSERT INTO employee_selection (menuitem_id, meal_type, created_user_id) VALUES (?, ?, CURDATE(), ?)";
         PreparedStatement statement = connection.prepareStatement(query);
         statement.setInt(1, itemId);
         statement.setString(2, mealType);
+        statement.setInt(3, userId);
         statement.executeUpdate();
     }
 
@@ -286,27 +291,39 @@ public class Database {
     }
 
     public ResultSet fetchDailyEmployeeSelections() throws SQLException {
-        String query = "SELECT es.menuitem_id, COUNT(*) AS selection_count, AVG(f.rating) AS avg_rating, AVG(f.sentiment_score) AS avg_sentiment " +
+        String query = "SELECT es.menuitem_id, COUNT(*) AS selection_count, AVG(mi.average_rating) AS avg_rating, AVG(mi.average_sentiment) AS avg_sentiment " +
                 "FROM employee_selection es " +
-                "JOIN feedback f ON es.feedback_id = f.feedback_id " +
-                "WHERE es.created_on = CURDATE() " +
+                "JOIN menuitem mi ON es.menuitem_id = mi.menuitem_id " +
+                // "WHERE es.created_on = CURDATE() " +
                 "GROUP BY es.menuitem_id";
         return executeQuery(query);
     }
 
     public void addNotification(String message) throws SQLException {
-        String query = "INSERT INTO NOTIFICATION (message, notification_date) VALUES (?, CURDATE())";
+        String query = "INSERT INTO NOTIFICATION (message, created_on) VALUES (?, CURDATE())";
         PreparedStatement preparedStatement = connection.prepareStatement(query);
         preparedStatement.setString(1, message);
         preparedStatement.executeUpdate();
         System.out.println("Notification added for feeback rollout");
     }
 
+    public ResultSet fetchTodayNotifications() throws SQLException {
+        String query = "SELECT message FROM NOTIFICATION WHERE created_on = CURDATE()";
+        PreparedStatement statement = connection.prepareStatement(query);
+        return statement.executeQuery();
+    }
+
+    public void updateNotificationViewedOn(int userId) throws SQLException {
+        String query = "UPDATE user SET notification_viewed_on = CURRENT_TIMESTAMP WHERE user_id = ?";
+        PreparedStatement statement = connection.prepareStatement(query);
+        statement.setInt(1, userId);
+        statement.executeUpdate();
+        statement.close();
+    }
+
     private ResultSet executeQuery(String query) throws SQLException {
         Statement stmt = connection.createStatement();
         return stmt.executeQuery(query);
     }
-
-
 
 }
